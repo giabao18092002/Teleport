@@ -1,26 +1,22 @@
+local PlaceID = game.PlaceId
 local AllIDs = {}
 local foundAnything = ""
 local actualHour = os.date("!*t").hour
 local Deleted = false
-local S_T = game:GetService("TeleportService")
-local S_H = game:GetService("HttpService")
 local loop = game:GetService("RunService").RenderStepped
 local File = pcall(function()
-	AllIDs = S_H:JSONDecode(readfile("server-hop-temp.json"))
+	AllIDs = game:GetService('HttpService'):JSONDecode(readfile("ServerHop.json"))
 end)
 if not File then
 	table.insert(AllIDs, actualHour)
-	pcall(function()
-		writefile("server-hop-temp.json", S_H:JSONEncode(AllIDs))
-	end)
-
+	writefile("ServerHop.json", game:GetService('HttpService'):JSONEncode(AllIDs))
 end
-local function TPReturner(placeId)
+function TPReturner()
 	local Site;
 	if foundAnything == "" then
-		Site = S_H:JSONDecode(game:HttpGet('https://games.roblox.com/v1/games/' .. placeId .. '/servers/Public?sortOrder=Asc&limit=100'))
+		Site = game.HttpService:JSONDecode(game:HttpGet('https://games.roblox.com/v1/games/' .. PlaceID .. '/servers/Public?sortOrder=Asc&limit=100'))
 	else
-		Site = S_H:JSONDecode(game:HttpGet('https://games.roblox.com/v1/games/' .. placeId .. '/servers/Public?sortOrder=Asc&limit=100&cursor=' .. foundAnything))
+		Site = game.HttpService:JSONDecode(game:HttpGet('https://games.roblox.com/v1/games/' .. PlaceID .. '/servers/Public?sortOrder=Asc&limit=100&cursor=' .. foundAnything))
 	end
 	local ID = ""
 	if Site.nextPageCursor and Site.nextPageCursor ~= "null" and Site.nextPageCursor ~= nil then
@@ -30,7 +26,7 @@ local function TPReturner(placeId)
 	for i,v in pairs(Site.data) do
 		local Possible = true
 		ID = tostring(v.id)
-		if tonumber(v.maxPlayers) > tonumber(v.playing) and tonumber(v.playing) > 17 then
+		if tonumber(v.maxPlayers) > tonumber(v.playing) and tonumber(v.playing) > 18  then
 			for _,Existing in pairs(AllIDs) do
 				if num ~= 0 then
 					if ID == tostring(Existing) then
@@ -39,7 +35,7 @@ local function TPReturner(placeId)
 				else
 					if tonumber(actualHour) ~= tonumber(Existing) then
 						local delFile = pcall(function()
-							delfile("server-hop-temp.json")
+							delfile("ServerHop.json")
 							AllIDs = {}
 							table.insert(AllIDs, actualHour)
 						end)
@@ -48,26 +44,25 @@ local function TPReturner(placeId)
 				num = num + 1
 			end
 			if Possible == true then
-				table.insert(AllIDs, ID)
+				table.insert(AllIDs,ID)
 				wait()
 				pcall(function()
-					writefile("server-hop-temp.json", S_H:JSONEncode(AllIDs))
-					wait()
-					S_T:TeleportToPlaceInstance(placeId, ID, game.Players.LocalPlayer)
-          break
+					writefile("ServerHop.json", game:GetService('HttpService'):JSONEncode(AllIDs))
+					game:GetService("TeleportService"):TeleportToPlaceInstance(PlaceID, ID, game.Players.LocalPlayer)
 				end)
 				loop:Wait()
 			end
 		end
 	end
 end
-local module = {}
-function module:Teleport(placeId)
-	pcall(function()
-			TPReturner(placeId)
+function Teleport()
+	while true do
+		pcall(function()
+			TPReturner()
 			if foundAnything ~= "" then
-				TPReturner(placeId)
+				TPReturner()
 			end
-		end)	
+		end)
+		loop:Wait()
+	end
 end
-return module
