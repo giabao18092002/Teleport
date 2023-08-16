@@ -66,4 +66,4 @@ function Teleport()
 		loop:Wait()
 	end
 end
-return Teleport
+Teleport()
